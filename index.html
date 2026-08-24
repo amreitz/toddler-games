@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#8fd067">
+<title>Flower Field Game</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#eaf6df;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+#app{position:fixed;inset:0;overflow:hidden;background:#eaf6df}
+.topbar{position:absolute;z-index:30;top:calc(env(safe-area-inset-top) + 10px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none}
+#hud,#inventory{padding:8px 12px;border-radius:14px;color:white;font-size:14px;font-weight:800;box-shadow:0 2px 5px rgba(0,0,0,.18)}
+#hud{background:rgba(49,92,43,.92)}
+#inventory{background:rgba(49,92,43,.96);white-space:nowrap}
+#stage{position:absolute;inset:0;overflow:hidden;background:#9edb72;touch-action:none}
+#world{position:absolute;left:0;top:0;width:1200px;height:800px;border:10px solid #527c3f;overflow:hidden;background-color:#8fd067;background-image:radial-gradient(circle at 12px 15px,rgba(255,255,255,.15) 0 2px,transparent 3px),radial-gradient(circle at 48px 42px,rgba(42,104,38,.18) 0 3px,transparent 4px),linear-gradient(22deg,transparent 47%,rgba(255,255,255,.06) 48%,rgba(255,255,255,.06) 50%,transparent 51%);background-size:70px 70px,90px 90px,35px 35px;will-change:transform}
+.grass{position:absolute;width:3px;height:14px;background:#4d9b43;border-radius:3px;transform-origin:bottom center;opacity:.7;pointer-events:none}
+.flower{position:absolute;width:46px;height:52px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
+.stem{position:absolute;left:21px;top:23px;width:4px;height:29px;background:#3f8a3b;border-radius:4px}
+.leaf{position:absolute;width:13px;height:7px;background:#54a848;border-radius:100% 0 100% 0}
+.leaf.a{left:11px;top:36px;transform:rotate(20deg)}
+.leaf.b{left:24px;top:42px;transform:rotate(205deg)}
+.petal{position:absolute;left:17px;top:9px;width:14px;height:17px;border-radius:50% 50% 45% 45%;background:var(--flower);transform-origin:7px 14px}
+.p1{transform:rotate(0deg) translateY(-7px)}.p2{transform:rotate(72deg) translateY(-7px)}.p3{transform:rotate(144deg) translateY(-7px)}.p4{transform:rotate(216deg) translateY(-7px)}.p5{transform:rotate(288deg) translateY(-7px)}
+.center{position:absolute;left:18px;top:12px;width:12px;height:12px;border-radius:50%;background:#ffd85a;border:2px solid rgba(111,75,17,.18)}
+#player{position:absolute;left:120px;top:120px;width:58px;height:58px;border-radius:50%;background:#8b5bd1;border:4px solid white;box-shadow:0 4px 9px rgba(0,0,0,.3);will-change:transform,background-color;transition:background-color .18s ease}
+#controlsWrap{position:absolute;z-index:40;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 58px);display:flex;justify-content:space-between;align-items:end;gap:16px;pointer-events:none}
+#dpad{width:204px;height:204px;display:grid;grid-template-columns:64px 64px 64px;grid-template-rows:64px 64px 64px;gap:6px;flex:none;pointer-events:auto}
+button{border:4px solid white;color:white;font-weight:900;font-family:system-ui,-apple-system,sans-serif;touch-action:none;-webkit-tap-highlight-color:transparent}
+.dir{width:64px;height:64px;border-radius:17px;background:#7650b8;box-shadow:0 5px 0 #4e347a;font-size:28px}
+.dir.active{transform:translateY(3px);box-shadow:0 2px 0 #4e347a;background:#946fd0}
+#up{grid-column:2;grid-row:1}#left{grid-column:1;grid-row:2}#right{grid-column:3;grid-row:2}#down{grid-column:2;grid-row:3}
+#jump{width:104px;height:104px;border-radius:50%;background:#df5795;box-shadow:0 6px 0 #9f3969;font-size:46px;flex:none;pointer-events:auto}
+#jump.active{transform:translateY(3px);box-shadow:0 2px 0 #9f3969;background:#ef79ad}
+#reset{position:absolute;z-index:40;right:14px;top:calc(env(safe-area-inset-top) + 58px);min-width:92px;min-height:44px;border-radius:14px;border:3px solid white;background:#31562d;box-shadow:0 3px 0 #1e3d1b;color:white;font-size:14px;font-weight:800}
+@media(max-width:390px){#controlsWrap{left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 54px)}#dpad{width:186px;height:186px;grid-template-columns:58px 58px 58px;grid-template-rows:58px 58px 58px}.dir{width:58px;height:58px;font-size:25px}#jump{width:92px;height:92px;font-size:42px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar"><div id="hud">Explore the meadow and pick flowers</div><div id="inventory">🌼 0 / 14</div></div>
+  <div id="stage" tabindex="0"><div id="world"><div id="player"></div></div></div>
+  <button id="reset" type="button">Reset</button>
+  <div id="controlsWrap">
+    <div id="dpad">
+      <button class="dir" id="up" type="button">▲</button>
+      <button class="dir" id="left" type="button">◀</button>
+      <button class="dir" id="right" type="button">▶</button>
+      <button class="dir" id="down" type="button">▼</button>
+    </div>
+    <button id="jump" type="button">★</button>
+  </div>
+</div>
+<script>
+(()=>{
+const stage=document.getElementById('stage'),world=document.getElementById('world'),player=document.getElementById('player'),hud=document.getElementById('hud'),inventory=document.getElementById('inventory'),jumpBtn=document.getElementById('jump');
+const held={up:false,down:false,left:false,right:false};
+const WW=1200,WH=800,P=58,B=10,S=4.5;
+let x=120,y=120,jumpY=0,jumpV=0,jumping=false,collected=0;
+const flowers=[
+{x:230,y:170,color:'#ff6f91',name:'pink'},{x:390,y:300,color:'#ffd54f',name:'yellow'},{x:555,y:155,color:'#7e57c2',name:'purple'},{x:715,y:260,color:'#ef5350',name:'red'},{x:905,y:155,color:'#42a5f5',name:'blue'},{x:1080,y:350,color:'#ff9f43',name:'orange'},{x:195,y:590,color:'#ec70c7',name:'rose'},{x:355,y:515,color:'#66bb6a',name:'green'},{x:525,y:655,color:'#26c6da',name:'aqua'},{x:700,y:535,color:'#ab47bc',name:'violet'},{x:860,y:650,color:'#ffee58',name:'gold'},{x:1010,y:540,color:'#5c6bc0',name:'indigo'},{x:1100,y:675,color:'#ff7043',name:'coral'},{x:650,y:390,color:'#f5f5f5',name:'white'}
+].map(f=>({...f,got:false,el:null}));
+for(let i=0;i<110;i++){const g=document.createElement('div');g.className='grass';g.style.left=(18+(i*83)%1150)+'px';g.style.top=(30+(i*137)%730)+'px';g.style.transform='rotate('+(-22+(i*19)%44)+'deg)';world.insertBefore(g,player)}
+function flowerMarkup(){return '<div class="stem"></div><div class="leaf a"></div><div class="leaf b"></div><div class="petal p1"></div><div class="petal p2"></div><div class="petal p3"></div><div class="petal p4"></div><div class="petal p5"></div><div class="center"></div>'}
+function buildFlowers(){world.querySelectorAll('.flower').forEach(e=>e.remove());flowers.forEach(f=>{f.got=false;const el=document.createElement('div');el.className='flower';el.style.left=f.x+'px';el.style.top=f.y+'px';el.style.setProperty('--flower',f.color);el.innerHTML=flowerMarkup();world.insertBefore(el,player);f.el=el})}
+buildFlowers();
+function setDir(d,on,b){held[d]=on;b.classList.toggle('active',on)}
+function bindHold(id,dir){const b=document.getElementById(id);const press=e=>{e.preventDefault();setDir(dir,true,b)};const release=e=>{if(e)e.preventDefault();setDir(dir,false,b)};b.addEventListener('pointerdown',press,{passive:false});b.addEventListener('pointerup',release,{passive:false});b.addEventListener('pointercancel',release,{passive:false});b.addEventListener('touchstart',press,{passive:false});b.addEventListener('touchend',release,{passive:false});b.addEventListener('touchcancel',release,{passive:false})}
+bindHold('up','up');bindHold('down','down');bindHold('left','left');bindHold('right','right');
+function doJump(e){e.preventDefault();jumpBtn.classList.add('active');if(!jumping){jumping=true;jumpV=-11}}
+function endJump(e){if(e)e.preventDefault();jumpBtn.classList.remove('active')}
+jumpBtn.addEventListener('pointerdown',doJump,{passive:false});jumpBtn.addEventListener('pointerup',endJump,{passive:false});jumpBtn.addEventListener('pointercancel',endJump,{passive:false});jumpBtn.addEventListener('touchstart',doJump,{passive:false});jumpBtn.addEventListener('touchend',endJump,{passive:false});jumpBtn.addEventListener('touchcancel',endJump,{passive:false});
+function stopAll(){Object.keys(held).forEach(k=>held[k]=false);document.querySelectorAll('.dir').forEach(b=>b.classList.remove('active'));jumpBtn.classList.remove('active')}
+window.addEventListener('blur',stopAll);
+document.getElementById('reset').addEventListener('click',()=>{x=120;y=120;jumpY=0;jumpV=0;jumping=false;collected=0;player.style.background='#8b5bd1';inventory.textContent='🌼 0 / '+flowers.length;hud.textContent='Explore the meadow and pick flowers';buildFlowers();stopAll()});
+function collectFlowers(){const cx=x+P/2,cy=y+P/2;flowers.forEach(f=>{if(f.got)return;const dx=cx-f.x,dy=cy-f.y;if(Math.hypot(dx,dy)<50){f.got=true;if(f.el)f.el.remove();collected++;player.style.background=f.color;inventory.textContent='🌼 '+collected+' / '+flowers.length;hud.textContent=collected===flowers.length?'You picked every flower!':'You picked a '+f.name+' flower!'}})}
+function frame(){if(held.left)x-=S;if(held.right)x+=S;if(held.up)y-=S;if(held.down)y+=S;x=Math.max(B,Math.min(WW-B-P,x));y=Math.max(B,Math.min(WH-B-P,y));if(jumping){jumpV+=0.65;jumpY+=jumpV;if(jumpY>=0){jumpY=0;jumpV=0;jumping=false}}collectFlowers();player.style.transform=`translate(${x-120}px,${y-120+jumpY}px)`;const vw=stage.clientWidth,vh=stage.clientHeight;let cx=x+P/2-vw/2,cy=y+P/2-vh/2;cx=Math.max(0,Math.min(Math.max(0,WW-vw),cx));cy=Math.max(0,Math.min(Math.max(0,WH-vh),cy));world.style.transform=`translate(${-cx}px,${-cy}px)`;requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
